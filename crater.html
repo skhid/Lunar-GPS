@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1" />
+  <title>Lunar Craters</title>
+  <style>html,
+    body,
+    #viewDiv,
+    #container {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      color: #323232;
+      font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+   
+      .arrowright {
+      border: solid rgb(255, 255, 255);
+      border-width: 0 3px 3px 0;
+      display: inline-block;
+      padding: 3px;
+      transform: rotate(-45deg);
+      -webkit-transform: rotate(-45deg);
+      color: white;
+      position: absolute;
+      right:267px;
+      top: 30px;
+      }
+     .click {
+      box-sizing: border-box;
+      border-radius: 10%;
+      border-color:rgb(255, 255, 255);
+      color: white;
+      position: absolute;
+      right: 280px;
+      top: 6px;
+      font-size:large;
+
+     }
+    
+    </style>
+
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.12/esri/themes/light/main.css" />
+  
+
+  <script src="https://js.arcgis.com/4.12/"></script>
+  <script>
+    require([
+      "esri/config",
+      "esri/Map",
+      "esri/views/SceneView",
+      "esri/layers/TileLayer",
+      "esri/Basemap",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Search",
+      "esri/widgets/Search/SearchSource",
+      "esri/layers/ElevationLayer",
+    
+    
+
+      
+      ],
+      
+      
+    function (
+      esriConfig, 
+      Map, 
+      SceneView, 
+      TileLayer, 
+      Basemap, 
+      FeatureLayer, 
+      Search,
+      SearchSource,
+      ElevationLayer,
+      
+   
+  
+      
+       ) {
+
+      esriConfig.apiKey = "AAPKaeb276f4526743a8931b773db6f974d0pthPpKZkkrgeh_ksub9P0ecmVzk9xpUbA3uvSQKjbahvPRPGIKtLHdc9IAA5mUrW";
+
+      const basemap = new Basemap({
+        baseLayers: [
+          new TileLayer({
+            url: "https://tiles.arcgis.com/tiles/WQ9KVmV6xGGMnCiQ/arcgis/rest/services/Moon_Basemap_Tile0to9/MapServer"
+          })
+          
+        ]
+      });
+
+      const map = new Map({
+        basemap: basemap,     
+      });
+
+      const view = new SceneView({
+        container: "viewDiv",
+        map: map
+      });
+
+      const labelClass = {  //labels
+      symbol: {
+        type: "text",  // autocasts as new TextSymbol()
+        color: "white",
+        haloColor: "black",
+        haloSize: 1,
+        font: {  // autocast as new Font()
+          family: "Ubuntu Mono",
+          size: 11,
+          weight: "bold"
+        }
+        },
+        labelPlacement: "above-right",
+        labelExpressionInfo: {
+          expression: "$feature.name"
+        },};
+
+      
+      const template = { //popups
+        title: "{name}",
+        content: [
+          {
+            type: "fields",
+            fieldInfos: [
+              {
+                fieldName: "center_lon",
+                label: "Longitude"
+              },
+              {
+                fieldName: "center_lat",
+                label: "Latitude"
+              },
+              {
+                fieldName: "diameter",
+                label: "Diameter (km)"
+              },
+              {
+                fieldName: "link",
+                label: "More Information"
+              }
+            ]
+          },
+          
+        ]};
+         
+
+      const featureLayer = new FeatureLayer({
+          url:
+           "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/MOON_nomenclature/FeatureServer",
+           popupTemplate: template,
+         labelingInfo: [labelClass],  
+                  
+        });
+
+      const elevationLayer = new ElevationLayer({
+            url: "https://tiles.arcgis.com/tiles/WQ9KVmV6xGGMnCiQ/arcgis/rest/services/Moon_Elevation_Surface/ImageServer",
+        });
+      map.ground.layers.add(elevationLayer);
+
+
+        const search = new Search({      //search bar
+          view, 
+          searchFields: ["name"],
+          displayField: "name",
+          exactMatch: false,
+          outFields: ["*"],
+          name: "Point FS",
+          placeholder: "Enter Crater Name",
+          popupEnabled : true,
+          searchAllEnabled : false,
+           })
+          const sources = [{
+              layer: new FeatureLayer({
+              url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/MOON_nomenclature/FeatureServer",
+              outFields: ["*"],
+              name: "craters",
+            }),             
+            }
+           ]
+
+           search.sources = sources
+           
+        
+       
+        map.add(featureLayer);
+        view.ui.add(search, {
+        position: "top-right",
+        index: 0})
+
+        
+              
+
+    });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="mySidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+    <a href="./moon.html">Moon</a>
+    <a href="./apollo.html">Apollo Missions</a>
+    <a href="./credits.html">Credits</a>
+   
+  </div>
+  
+  <div id="main">
+     
+    <button class="openbtn" onclick="openNav()">☰ Explore </button>  
+    
+  </div>
+  
+  <script>
+      function openNav() {
+        document.getElementById("mySidebar").style.width = "250px";
+        document.getElementById("main").style.marginRight = "250px";
+      }
+      
+      function closeNav() {
+        document.getElementById("mySidebar").style.width = "0";
+        document.getElementById("main").style.marginRight= "0";
+      }
+      </script>
+  <link rel="stylesheet" href="plain.css">
+  <p>Right Arrow <i class="arrowright"></i></p>
+  <p class="click">Click and select "Moon nomenclature: name" </p>
+</body>
+
+</html>

@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="initial-scale=1" />
+  <title>Lunar Exploration</title>
+  <style>html,
+    body,
+    #viewDiv,
+    #container {
+      padding: 0;
+      margin: 0;
+      height: 100%;
+      width: 100%;
+      color: #323232;
+      font-family: "Avenir Next W00", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+   
+      .arrowright {
+      border: solid rgb(255, 255, 255);
+      border-width: 0 3px 3px 0;
+      display: inline-block;
+      padding: 3px;
+      transform: rotate(-45deg);
+      -webkit-transform: rotate(-45deg);
+      color: white;
+      position: absolute;
+      right:267px;
+      top: 30px;
+      }
+     .click {
+      box-sizing: border-box;
+      border-radius: 10%;
+      border-color:rgb(255, 255, 255);
+      color: white;
+      position: absolute;
+      right: 280px;
+      top: 6px;
+      font-size:large;
+
+     }
+      #sketchPanel {
+        width: 200px;
+        padding: 10px;
+        background-color: rgba(255, 255, 255, 0.8);
+      }
+
+      .esri-button {
+        margin: 2px;
+      }
+
+      #configurationDiv {
+        padding: 10px;
+        text-align: left;
+        width: 250px;
+      }
+
+      #configurationInfoDiv {
+        padding: 7px;
+        text-align: left;
+      }
+
+      #snappingctrlkey {
+        display: inline;
+      }
+
+      #actionbuttons,
+      #edgeoperationbuttons {
+        display: none;
+      }
+
+      .update-options {
+        display: flex;
+        flex-direction: row;
+      }
+
+      .edge-button,
+      .shape-button {
+        flex: 1;
+        border-style: solid;
+        border-width: 1px;
+        border-image: none;
+      }
+
+      .edge-button-selected,
+      .shape-button-selected {
+        background: #4c4c4c;
+        color: #fff;
+      }
+      .esri-elevation-profile.esri-component.esri-widget--panel {
+        width: 350px !important;
+      }
+    
+    </style>
+
+
+  <link rel="stylesheet" href="https://js.arcgis.com/4.26/esri/themes/light/main.css" />
+  
+
+  <script src="https://js.arcgis.com/4.26/"></script>
+  <script>
+    require([
+      "esri/config",
+      "esri/Map",
+      "esri/views/SceneView",
+      "esri/layers/TileLayer",
+      "esri/Basemap",
+      "esri/layers/FeatureLayer",
+      "esri/widgets/Search",
+      "esri/widgets/Search/SearchSource",
+      "esri/layers/ElevationLayer",
+      "esri/widgets/Sketch/SketchViewModel",
+      "esri/layers/GraphicsLayer",
+      "esri/widgets/Expand",
+      
+
+    ],
+    function (
+      esriConfig, 
+      Map, 
+      SceneView, 
+      TileLayer, 
+      Basemap, 
+      FeatureLayer, 
+      Search,
+      SearchSource,
+      ElevationLayer,
+      SketchViewModel,
+      GraphicsLayer,
+      Expand
+      ) {
+      esriConfig.apiKey = "AAPKaeb276f4526743a8931b773db6f974d0pthPpKZkkrgeh_ksub9P0ecmVzk9xpUbA3uvSQKjbahvPRPGIKtLHdc9IAA5mUrW";
+      const basemap = new Basemap({
+        baseLayers: [
+          new TileLayer({
+            url: "https://tiles.arcgis.com/tiles/WQ9KVmV6xGGMnCiQ/arcgis/rest/services/Moon_Basemap_Tile0to9/MapServer"
+          })
+          
+        ]
+      });
+      const map = new Map({
+      basemap: basemap, 
+      
+      });
+      const graphicsLayer = new GraphicsLayer({
+          elevationInfo: { mode: "on-the-ground" },
+          title: "Sketch GraphicsLayer"
+        });
+        map.layers.add(graphicsLayer);
+      const view = new SceneView({
+        container: "viewDiv",
+        map: map,
+        
+      });
+      const labelClass = {  //labels
+      symbol: {
+        type: "text",  // autocasts as new TextSymbol()
+        color: "white",
+        haloColor: "black",
+        haloSize: 1,
+        font: {  // autocast as new Font()
+          family: "Ubuntu Mono",
+          size: 11,
+          weight: "bold"
+        }
+        },
+      labelPlacement: "above-right",
+      labelExpressionInfo: {
+          expression: "$feature.name"
+        },};
+      const template = { //popups
+        title: "{name}",
+        content: [
+          {
+            type: "fields",
+            fieldInfos: [
+              {
+                fieldName: "center_lon",
+                label: "Longitude"
+              },
+              {
+                fieldName: "center_lat",
+                label: "Latitude"
+              },
+              {
+                fieldName: "diameter",
+                label: "Diameter"
+              },
+              {
+                fieldName: "link",
+                label: "More Information"
+              }
+            ]
+          },
+         
+        ]};
+      const featureLayer = new FeatureLayer({
+          url:
+           "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/MOON_nomenclature/FeatureServer",
+           popupTemplate: template,
+         labelingInfo: [labelClass],  
+        
+        });
+
+        const featureLayer2 = new FeatureLayer({
+            url:
+              "https://services.arcgis.com/6fJiTmtCJVOnEp0C/arcgis/rest/services/ApolloLandings/FeatureServer",
+             
+            
+          });
+      const elevationLayer = new ElevationLayer({
+            url: "https://tiles.arcgis.com/tiles/WQ9KVmV6xGGMnCiQ/arcgis/rest/services/Moon_Elevation_Surface/ImageServer",
+        });
+      map.ground.layers.add(elevationLayer);
+      const search = new Search({      //search bar
+          view, 
+          searchFields: ["name"],
+          displayField: "name",
+          exactMatch: false,
+          outFields: ["*"],
+          name: "Point FS",
+          placeholder: "Enter Crater Name",
+          popupEnabled : true,
+          searchAllEnabled : false,
+           })
+      const sources = [
+              {
+              layer: new FeatureLayer({
+              url: "https://services.arcgis.com/V6ZHFr6zdgNZuVG0/arcgis/rest/services/MOON_nomenclature/FeatureServer",
+              outFields: ["*"],
+              name: "Craters",
+            }),             
+            },
+            
+           ]
+      search.sources = sources
+      view.ui.add(search, {
+        position: "top-right",
+        index: 0})
+
+        const blue = [82, 82, 122, 0.9];
+        const white = [255, 255, 255, 0.8];
+
+        // polygon symbol used for sketching the extruded building footprints
+        const extrudedPolygon = {
+          type: "polygon-3d",
+          symbolLayers: [
+            {
+              type: "extrude",
+              size: 10, // extrude by 10 meters
+              material: {
+                color: white
+              },
+              edges: {
+                type: "solid",
+                size: "3px",
+                color: blue
+              }
+            }
+          ]
+        };
+
+        // polyline symbol used for sketching routes
+        const route = {
+          type: "line-3d",
+          symbolLayers: [
+            {
+              type: "line",
+              size: "10px",
+              material: {
+                color: white
+              }
+            },
+            {
+              type: "line",
+              size: "3px",
+              material: {
+                color: blue
+              }
+            }
+          ]
+        };
+
+        // point symbol used for sketching points of interest
+        const point = {
+          type: "point-3d",
+          symbolLayers: [
+            {
+              type: "icon",
+              size: "30px",
+              resource: { primitive: "kite" },
+              outline: {
+                color: blue,
+                size: "3px"
+              },
+              material: {
+                color: white
+              }
+            }
+          ]
+        };
+
+        // Set-up event handlers for buttons and click events
+        const enabledcheckbox = document.getElementById("enabledcheckbox");
+        const startbuttons = document.getElementById("startbuttons");
+        const actionbuttons = document.getElementById("actionbuttons");
+        const edgeoperationbuttons = document.getElementById(
+          "edgeoperationbuttons"
+        );
+        const tooltipOptionsheckbox = document.getElementById(
+          "tooltipOptionsheckbox"
+        );
+        const configurationInfoDiv = document.getElementById(
+          "configurationInfoDiv"
+        );
+        const labelOptionscheckbox = document.getElementById(
+          "labelOptionscheckbox"
+        );
+        const selfsnappingcheckbox = document.getElementById(
+          "selfsnappingcheckbox"
+        );
+        const snappingctrlkey = document.getElementById("snappingctrlkey");
+        const featuresnappingcheckbox = document.getElementById(
+          "featuresnappingcheckbox"
+        );
+
+        // load the default value from the snapping checkbox
+        let snappingcheckboxsavedstate = enabledcheckbox.checked ? true : false;
+
+        // define the SketchViewModel and pass in the symbols for each geometry type
+        // set the snappingOptions.selfEnabled to the default state
+        const sketchViewModel = new SketchViewModel({
+          layer: graphicsLayer,
+          view: view,
+          pointSymbol: point,
+          polygonSymbol: extrudedPolygon,
+          polylineSymbol: route,
+          snappingOptions: {
+            enabled: snappingcheckboxsavedstate,
+            featureSources: [{ layer: graphicsLayer }]
+          },
+          tooltipOptions: { enabled: true },
+          labelOptions: { enabled: true },
+          defaultUpdateOptions: {
+            tool: "reshape"
+          }
+        });
+
+        // after drawing the geometry, enter the update mode to update the geometry
+        // and the deactivate the buttons
+        sketchViewModel.on("create", (event) => {
+          if (event.state === "complete") {
+            startbuttons.style.display = "inline";
+            actionbuttons.style.display = "none";
+            sketchViewModel.update(event.graphic);
+          }
+          if (event.state === "cancel") {
+            startbuttons.style.display = "inline";
+            actionbuttons.style.display = "none";
+          }
+        });
+
+        sketchViewModel.on("update", (event) => {
+          if (event.state === "start") {
+            startbuttons.style.display = "none";
+            actionbuttons.style.display = "inline";
+            if (
+              event.graphics[0].geometry.type === "polygon" ||
+              event.graphics[0].geometry.type === "polyline"
+            ) {
+              edgeoperationbuttons.style.display = "inline";
+            }
+          }
+          if (event.state === "complete") {
+            startbuttons.style.display = "inline";
+            actionbuttons.style.display = "none";
+            edgeoperationbuttons.style.display = "none";
+          }
+        });
+
+        /**********************************************
+         * Drawing UI with configuration
+         *********************************************/
+
+        const drawButtons = Array.prototype.slice.call(
+          document.getElementsByClassName("starttool")
+        );
+        const cancelBtn = document.getElementById("cancel");
+        const doneBtn = document.getElementById("done");
+
+        // set event listeners to activate sketching graphics
+        drawButtons.forEach((btn) => {
+          btn.addEventListener("click", (event) => {
+            // to activate sketching the create method is called passing in the geometry type
+            // from the data-type attribute of the html element
+            sketchViewModel.create(event.target.getAttribute("data-type"));
+            startbuttons.style.display = "none";
+            actionbuttons.style.display = "inline";
+          });
+        });
+
+        cancelBtn.addEventListener("click", (event) => {
+          sketchViewModel.cancel();
+        });
+        doneBtn.addEventListener("click", (event) => {
+          if (sketchViewModel.updateGraphics.length !== 0) {
+            sketchViewModel.complete();
+          } else {
+            sketchViewModel.cancel();
+          }
+        });
+
+        view.ui.add("sketchPanel", "top-right");
+
+        // default values for edge/move operations
+        let edgeType = "split";
+        let shapeType = "move";
+
+        // Handling the configuration for edge operation
+        const noneEdgeBtn = document.getElementById("none-edge-button");
+        const splitEdgeBtn = document.getElementById("split-edge-button");
+        const offsetEdgeBtn = document.getElementById("offset-edge-button");
+        noneEdgeBtn.onclick = edgeChangedClickHandler;
+        splitEdgeBtn.onclick = edgeChangedClickHandler;
+        offsetEdgeBtn.onclick = edgeChangedClickHandler;
+
+        function edgeChangedClickHandler(event) {
+          edgeType = event.target.value;
+
+          // handle the buttons
+          const buttons = document.getElementsByClassName("edge-button");
+          for (const button of buttons) {
+            button.classList.remove("edge-button-selected");
+          }
+          this.classList.add("edge-button-selected");
+          restartUpdateMode({
+            reshapeOptions: {
+              edgeOperation: edgeType,
+              shapeOperation: shapeType
+            }
+          });
+        }
+
+        // Handling the configuration for move operation
+        const noneShapeButton = document.getElementById("none-shape-button");
+        const moveShapeButton = document.getElementById("move-shape-button");
+        noneShapeButton.onclick = shapeChangedClickHandler;
+        moveShapeButton.onclick = shapeChangedClickHandler;
+
+        function shapeChangedClickHandler(event) {
+          shapeType = event.target.value;
+
+          // handle the buttons
+          const buttons = document.getElementsByClassName("shape-button");
+          for (const button of buttons) {
+            button.classList.remove("shape-button-selected");
+          }
+          this.classList.add("shape-button-selected");
+          restartUpdateMode({
+            reshapeOptions: {
+              edgeOperation: edgeType,
+              shapeOperation: shapeType
+            }
+          });
+        }
+
+        function restartUpdateMode(updateOptions) {
+          sketchViewModel.defaultUpdateOptions = {
+            ...sketchViewModel.defaultUpdateOptions,
+            ...updateOptions
+          };
+
+          if (sketchViewModel.activeTool) {
+            if (
+              sketchViewModel.activeTool === "transform" ||
+              sketchViewModel.activeTool === "move" ||
+              sketchViewModel.activeTool === "reshape"
+            ) {
+              updateOptions.tool = sketchViewModel.activeTool;
+              sketchViewModel.update(
+                sketchViewModel.updateGraphics.toArray(),
+                updateOptions
+              );
+            }
+          }
+        }
+
+        /**********************************************
+         * Configuration UI for snapping
+         *********************************************/
+
+        sketchViewModel.watch("snappingOptions.enabled", (newValue) => {
+          enabledcheckbox.checked = newValue;
+        });
+
+        enabledcheckbox.checked = sketchViewModel.snappingOptions.enabled;
+        enabledcheckbox.addEventListener("change", (event) => {
+          sketchViewModel.snappingOptions.enabled = event.target.checked
+            ? true
+            : false;
+        });
+
+        tooltipOptionsheckbox.checked = sketchViewModel.tooltipOptions.enabled;
+        tooltipOptionsheckbox.addEventListener("change", (event) => {
+          sketchViewModel.tooltipOptions.enabled = event.target.checked
+            ? true
+            : false;
+        });
+
+        labelOptionscheckbox.checked = sketchViewModel.labelOptions.enabled;
+        labelOptionscheckbox.addEventListener("change", (event) => {
+          sketchViewModel.labelOptions.enabled = event.target.checked
+            ? true
+            : false;
+        });
+
+        selfsnappingcheckbox.checked =
+          sketchViewModel.snappingOptions.selfEnabled;
+        selfsnappingcheckbox.addEventListener("change", (event) => {
+          sketchViewModel.snappingOptions.selfEnabled = event.target.checked
+            ? true
+            : false;
+        });
+
+        featuresnappingcheckbox.checked =
+          sketchViewModel.snappingOptions.featureEnabled;
+        featuresnappingcheckbox.addEventListener("change", (event) => {
+          sketchViewModel.snappingOptions.featureEnabled = event.target.checked
+            ? true
+            : false;
+        });
+
+        const configurationExpand = new Expand({
+          expandIconClass: "esri-icon-settings2",
+          expandTooltip: "Show configuration",
+          expanded: false,
+          view: view,
+          content: document.getElementById("configurationDiv")
+        });
+
+        // observe the if the CTRL-key got pressed to give the user a visual feedback
+        // the logic itself for toggling snapping is in the SketchViewModel
+        view.on(["key-down"], (ev) => {
+          if (ev.key === "Control") {
+            snappingctrlkey.style.fontWeight = "bold";
+            snappingctrlkey.style.color = "royalblue";
+          }
+        });
+        view.on(["key-up"], (ev) => {
+          if (ev.key === "Control") {
+            snappingctrlkey.style.fontWeight = "normal";
+            snappingctrlkey.style.color = "black";
+          }
+        });
+
+        view.ui.add(configurationExpand, "bottom-right");
+
+        configurationInfoDiv.addEventListener("click", (event) => {
+          configurationExpand.expand();
+        });
+        view.ui.add("configurationInfoDiv", "bottom-right");
+       });
+  </script>
+</head>
+
+<body>
+  <div id="viewDiv"></div>
+  <div id="mySidebar" class="sidebar">
+    <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">×</a>
+    <a href="./crater.html">Craters</a>
+    <a href="./apollo.html">Apollo Missions</a>
+    <a href="./credits.html">Credits</a>
+    
+   
+  </div>
+  <div id="main">
+    <button class="openbtn" onclick="openNav()">☰ Explore </button>  
+  </div>
+  <script>
+      function openNav() {
+        document.getElementById("mySidebar").style.width = "250px";
+        document.getElementById("main").style.marginRight = "250px";
+      }
+      
+      function closeNav() {
+        document.getElementById("mySidebar").style.width = "0";
+        document.getElementById("main").style.marginRight= "0";
+      }
+      </script>
+  <link rel="stylesheet" href="plain.css">
+  <p>Right Arrow <i class="arrowright"></i></p>
+  <p class="click">Click and select "Moon nomenclature: name" </p>
+
+  <div id="sketchPanel" class="esri-widget">
+    <div id="startbuttons">
+      <button id="point" data-type="point" class="esri-button starttool">
+        Draw a point of interest
+      </button>
+      <button id="line" data-type="polyline" class="esri-button starttool">
+        Draw a route
+      </button>
+      <button
+        id="extrudedPolygon"
+        data-type="polygon"
+        class="esri-button starttool"
+      >
+        Draw a building
+      </button>
+    </div>
+    <div id="actionbuttons">
+      <button id="cancel" class="esri-button">Cancel</button>
+      <button id="done" class="esri-button">Done</button>
+    </div>
+    <div id="edgeoperationbuttons">
+      <br />Select the edge operation:
+      <div class="update-options" id="edge">
+        <button
+          class="esri-widget--button edge-button"
+          id="none-edge-button"
+          value="none"
+        >
+          None
+        </button>
+        <button
+          class="esri-widget--button edge-button edge-button-selected"
+          id="split-edge-button"
+          value="split"
+        >
+          Split
+        </button>
+        <button
+          class="esri-widget--button edge-button"
+          id="offset-edge-button"
+          value="offset"
+        >
+          Offset
+        </button>
+      </div>
+      Select the move operation:
+      <div class="update-options" id="shape">
+        <button
+          class="esri-widget--button shape-button"
+          id="none-shape-button"
+          value="none"
+        >
+          None
+        </button>
+        <button
+          class="esri-widget--button shape-button shape-button-selected"
+          id="move-shape-button"
+          value="move"
+        >
+          Move
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="configurationDiv" class="esri-widget">
+    <table id="configurationTable">
+      <tbody>
+        <tr>
+          <td>
+            <label><b>Tooltip/Label </b></label>
+          </td>
+        </tr>
+        <tr>
+          <td>
+            <label
+              for="tooltipOptionscheckbox"
+              id="tooltipOptionscheckboxlabel"
+            >
+              - Tooltip</label
+            >
+          </td>
+          <td><input type="checkbox" id="tooltipOptionsheckbox" /></td>
+        </tr>
+        <tr>
+          <td>
+            <label for="labelOptionscheckbox" id="labelOptionscheckboxlabel">
+              - Label</label
+            >
+          </td>
+          <td><input type="checkbox" id="labelOptionscheckbox" /></td>
+        </tr>
+        <tr>
+          <td>
+            <label for="enabledcheckbox" id="enabledcheckboxlabel"
+              ><b
+                >Snapping enabled (
+                <div id="snappingctrlkey">CTRL-key</div>
+                )</b
+              ></label
+            >
+          </td>
+          <td><input type="checkbox" id="enabledcheckbox" checked /></td>
+        </tr>
+        <tr>
+          <td>
+            <label for="selfsnappingcheckbox" id="selfsnappingcheckboxlabel">
+              - self snapping</label
+            >
+          </td>
+          <td><input type="checkbox" id="selfsnappingcheckbox" /></td>
+        </tr>
+        <tr>
+          <td>
+            <label
+              for="featuresnappingcheckbox"
+              id="featuresnappingcheckboxlabel"
+            >
+              - feature snapping</label
+            >
+          </td>
+          <td><input type="checkbox" id="featuresnappingcheckbox" /></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div id="configurationInfoDiv" class="esri-widget">
+    <b>Open configuration <span>&#8594;</span></b>
+  </div>
+</body>
+
+
+</html>
